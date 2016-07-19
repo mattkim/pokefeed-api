@@ -1,13 +1,14 @@
 package application
 
 import (
+	"net/http"
+
 	"github.com/carbocation/interpose"
 	gorilla_mux "github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/spf13/viper"
-	"net/http"
 
 	"github.com/pokefeed/pokefeed-api/handlers"
 	"github.com/pokefeed/pokefeed-api/middlewares"
@@ -35,9 +36,9 @@ func New(config *viper.Viper) (*Application, error) {
 
 // Application is the application object that runs HTTP server.
 type Application struct {
-	config      *viper.Viper
-	dsn         string
-	db          *sqlx.DB
+	config       *viper.Viper
+	dsn          string
+	db           *sqlx.DB
 	sessionStore sessions.Store
 }
 
@@ -58,6 +59,8 @@ func (app *Application) mux() *gorilla_mux.Router {
 
 	router.Handle("/", MustLogin(http.HandlerFunc(handlers.GetHome))).Methods("GET")
 
+	router.HandleFunc("/getfeed", handlers.GetFeed).Methods("GET", "OPTIONS")
+	router.HandleFunc("/postfeed", handlers.PostFeed).Methods("POST", "OPTIONS")
 	router.HandleFunc("/signup", handlers.GetSignup).Methods("GET")
 	router.HandleFunc("/signup", handlers.PostSignup).Methods("POST")
 	router.HandleFunc("/login", handlers.GetLogin).Methods("GET")
