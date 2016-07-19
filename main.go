@@ -2,16 +2,15 @@ package main
 
 import (
 	"encoding/gob"
-	"fmt"
 	"github.com/Sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/tylerb/graceful"
 	"net/http"
+	"fmt"
 	"time"
-
+	"os"
 	"github.com/pokefeed/pokefeed-api/application"
 	"github.com/pokefeed/pokefeed-api/models"
-	"github.com/pokefeed/pokefeed-api/libunix"
 )
 
 func init() {
@@ -19,15 +18,10 @@ func init() {
 }
 
 func newConfig() (*viper.Viper, error) {
-	u, err := libunix.CurrentUser()
-	if err != nil {
-		return nil, err
-	}
-
 	c := viper.New()
-	c.SetDefault("dsn", fmt.Sprintf("postgres://%v@localhost:5432/pokefeed-api?sslmode=disable", u))
+	c.SetDefault("dsn", os.Getenv("DATABASE_URL"))
 	c.SetDefault("cookie_secret", "Avxrhb9PI1uJTAb0")
-	c.SetDefault("http_addr", ":8888")
+	c.SetDefault("http_addr", fmt.Sprintf(":%v",os.Getenv("PORT")))
 	c.SetDefault("http_cert_file", "")
 	c.SetDefault("http_key_file", "")
 	c.SetDefault("http_drain_interval", "1s")

@@ -12,6 +12,7 @@ ENV HTTP_DRAIN_INTERVAL 1s
 ENV COOKIE_SECRET Avxrhb9PI1uJTAb0
 
 # Replace this with actual PostgreSQL DSN.
+# TODO: need to hook this up to heroku env var
 ENV DSN postgres://mattkim@localhost:5432/pokefeed-api?sslmode=disable
 
 WORKDIR /go/src/github.com/pokefeed/pokefeed-api
