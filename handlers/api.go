@@ -40,7 +40,6 @@ func GetFeed(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 
-	// Note adding an ID is recommended by reactjs
 	result := GetFeedResultStruct{
 		UUID:              "a551ebe9-8b11-466f-ad25-797073b05b8b",
 		CreatedByUserUUID: "b89d86f1-5502-4f17-8e68-6945206f2b3c",
