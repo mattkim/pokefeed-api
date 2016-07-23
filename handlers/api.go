@@ -24,11 +24,13 @@ type ResultStruct struct {
 
 type GetFeedResultStruct struct {
 	UUID              string    `json:"uuid"`
+	Username          string    `json:"username"`
 	CreatedByUserUUID string    `json:"created_by_user_uuid"`
 	Message           string    `json:"message"`
 	Pokemon           string    `json:"pokemon"`
 	Lat               float64   `json:"lat"`
 	Long              float64   `json:"long"`
+	FormattedAddress  string    `json:"formatted_address"`
 	CreatedAtDate     time.Time `json:"created_at_date"`
 	UpdatedAtDate     time.Time `json:"updated_at_date"`
 	DeletedAtDate     time.Time `json:"deleted_at_date"`
@@ -42,14 +44,19 @@ func GetFeed(w http.ResponseWriter, r *http.Request) {
 
 	result := GetFeedResultStruct{
 		UUID:              "a551ebe9-8b11-466f-ad25-797073b05b8b",
+		Username:          "ilovepokemon23",
 		CreatedByUserUUID: "b89d86f1-5502-4f17-8e68-6945206f2b3c",
-		Message:           "Message",
+		Message:           "Everyone get over here and catch this guy!",
 		Pokemon:           "Charmander",
-		Lat:               51.5032510,
-		Long:              51.5032510,
-		CreatedAtDate:     time.Now(),
-		UpdatedAtDate:     time.Now(),
-		DeletedAtDate:     time.Now(),
+		Lat:               37.7752315,
+		Long:              -122.4197165,
+		FormattedAddress:  "11 Oak St, San Francisco, CA 94102, USA",
+		// Use google apis to reverse encode the address
+		// http://maps.googleapis.com/maps/api/geocode/json?latlng=37.7752315,-122.4197165&sensor=true
+		CreatedAtDate: time.Date(2016, 7, 17, 20, 34, 58, 651387237, time.UTC),
+		// TODO: this should return UTC but it does not seem to.
+		UpdatedAtDate: time.Now(),
+		DeletedAtDate: time.Now(),
 	}
 	response := []GetFeedResultStruct{result, result, result, result, result}
 	json.NewEncoder(w).Encode(response)
