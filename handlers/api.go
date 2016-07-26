@@ -28,6 +28,7 @@ type GetFeedResultStruct struct {
 	CreatedByUserUUID string    `json:"created_by_user_uuid"`
 	Message           string    `json:"message"`
 	Pokemon           string    `json:"pokemon"`
+	PokemonImageURL   string    `json:"pokemon_image_url"`
 	Lat               float64   `json:"lat"`
 	Long              float64   `json:"long"`
 	FormattedAddress  string    `json:"formatted_address"`
@@ -48,9 +49,11 @@ func GetFeed(w http.ResponseWriter, r *http.Request) {
 		CreatedByUserUUID: "b89d86f1-5502-4f17-8e68-6945206f2b3c",
 		Message:           "Everyone get over here and catch this guy!",
 		Pokemon:           "Charmander",
-		Lat:               37.7752315,
-		Long:              -122.4197165,
-		FormattedAddress:  "11 Oak St, San Francisco, CA 94102, USA",
+		// Create a map between pokemon name and image url, and then return as base64 image.
+		PokemonImageURL:  "http://static.giantbomb.com/uploads/scale_small/0/6087/2438704-1202149925_t.png",
+		Lat:              37.7752315,
+		Long:             -122.4197165,
+		FormattedAddress: "11 Oak St, San Francisco, CA 94102, USA",
 		// Use google apis to reverse encode the address
 		// http://maps.googleapis.com/maps/api/geocode/json?latlng=37.7752315,-122.4197165&sensor=true
 		CreatedAtDate: time.Date(2016, 7, 17, 20, 34, 58, 651387237, time.UTC),
