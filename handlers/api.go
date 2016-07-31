@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-
-	"github.com/pokefeed/pokefeed-api/libhttp"
 )
 
 type PostFeedStruct struct {
@@ -71,18 +69,20 @@ func PostFeed(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 
-	decoder := json.NewDecoder(r.Body)
-	var t PostFeedStruct
-	err := decoder.Decode(&t)
+	// decoder := json.NewDecoder(r.Body)
+	// var t PostFeedStruct
+	// err := decoder.Decode(&t)
 
-	if err != nil {
-		libhttp.HandleErrorJson(w, err)
-		return
-	}
+	// if err != nil {
+	// 	libhttp.HandleErrorJson(w, err)
+	// 	return
+	// }
+
+	b := r.Body
 
 	response := ResultStruct{
 		ID:     1,
-		Result: fmt.Sprintf("PostFeed: %v", t),
+		Result: fmt.Sprintf("PostFeed: %v", b),
 	}
 	json.NewEncoder(w).Encode(response)
 }
