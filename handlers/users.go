@@ -1,16 +1,32 @@
 package handlers
 
 import (
+	"encoding/json"
 	"errors"
-	"github.com/pokefeed/pokefeed-api/models"
-	"github.com/pokefeed/pokefeed-api/libhttp"
+	"html/template"
+	"log"
+	"net/http"
+	"os"
+	"strings"
+
 	"github.com/gorilla/context"
 	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
-	"html/template"
-	"net/http"
-	"strings"
+	"github.com/pokefeed/pokefeed-api/libhttp"
+	"github.com/pokefeed/pokefeed-api/models"
 )
+
+type PostSignupStruct struct {
+	Email         string `json:"email"`
+	Username      string `json:"username"`
+	Password      string `json:"password"`
+	PasswordAgain string `json:"password_again"`
+}
+
+type PostLoginStruct struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
 
 func GetSignup(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
@@ -24,23 +40,45 @@ func GetSignup(w http.ResponseWriter, r *http.Request) {
 	tmpl.Execute(w, nil)
 }
 
+func OptionsSignup(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+}
+
 func PostSignup(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+
+	Info := log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
 
 	db := context.Get(r, "db").(*sqlx.DB)
 
-	email := r.FormValue("Email")
-	password := r.FormValue("Password")
-	passwordAgain := r.FormValue("PasswordAgain")
+	decoder := json.NewDecoder(r.Body)
+	var t PostSignupStruct
+	err := decoder.Decode(&t)
 
-	_, err := models.NewUser(db).Signup(nil, email, password, passwordAgain)
 	if err != nil {
 		libhttp.HandleErrorJson(w, err)
 		return
 	}
 
-	// Perform login
-	PostLogin(w, r)
+	Info.Println(t)
+
+	user, err2 := models.NewUser(db).Signup(nil, t.Email, t.Username, t.Password, t.PasswordAgain)
+	if err2 != nil {
+		Info.Println(err2)
+		libhttp.HandleErrorJson(w, err)
+		return
+	}
+
+	// TODO: null check user.
+
+	// TODO: remove password?  It is hashed...
+	json.NewEncoder(w).Encode(*user)
 }
 
 func GetLoginWithoutSession(w http.ResponseWriter, r *http.Request) {
@@ -73,33 +111,40 @@ func GetLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 // PostLogin performs login.
+func OptionsLogin(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+}
+
+// PostLogin performs login.
 func PostLogin(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 
 	db := context.Get(r, "db").(*sqlx.DB)
-	sessionStore := context.Get(r, "sessionStore").(sessions.Store)
 
-	email := r.FormValue("Email")
-	password := r.FormValue("Password")
+	decoder := json.NewDecoder(r.Body)
+	var t PostLoginStruct
+	err := decoder.Decode(&t)
+
+	if err != nil {
+		libhttp.HandleErrorJson(w, err)
+		return
+	}
 
 	u := models.NewUser(db)
 
-	user, err := u.GetUserByEmailAndPassword(nil, email, password)
+	user, err := u.GetUserByEmailAndPassword(nil, t.Email, t.Password)
 	if err != nil {
 		libhttp.HandleErrorJson(w, err)
 		return
 	}
 
-	session, _ := sessionStore.Get(r, "pokefeed-api-session")
-	session.Values["user"] = user
-
-	err = session.Save(r, w)
-	if err != nil {
-		libhttp.HandleErrorJson(w, err)
-		return
-	}
-
-	http.Redirect(w, r, "/", 302)
+	json.NewEncoder(w).Encode(*user)
 }
 
 func GetLogout(w http.ResponseWriter, r *http.Request) {

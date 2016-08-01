@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -18,7 +19,9 @@ func NewUser(db *sqlx.DB) *User {
 }
 
 type UserRow struct {
+	// TODO: ID should be UUID
 	ID       int64  `db:"id"`
+	Username string `db:"username"`
 	Email    string `db:"email"`
 	Password string `db:"password"`
 }
@@ -79,9 +82,13 @@ func (u *User) GetUserByEmailAndPassword(tx *sqlx.Tx, email, password string) (*
 }
 
 // Signup create a new record of user.
-func (u *User) Signup(tx *sqlx.Tx, email, password, passwordAgain string) (*UserRow, error) {
+func (u *User) Signup(tx *sqlx.Tx, email, username, password, passwordAgain string) (*UserRow, error) {
+	// TODO: setup username
 	if email == "" {
 		return nil, errors.New("Email cannot be blank.")
+	}
+	if username == "" {
+		return nil, errors.New("Username cannot be blank.")
 	}
 	if password == "" {
 		return nil, errors.New("Password cannot be blank.")
@@ -97,6 +104,7 @@ func (u *User) Signup(tx *sqlx.Tx, email, password, passwordAgain string) (*User
 
 	data := make(map[string]interface{})
 	data["email"] = email
+	data["username"] = username
 	data["password"] = hashedPassword
 
 	sqlResult, err := u.InsertIntoTable(tx, data)
