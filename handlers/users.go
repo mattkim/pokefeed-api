@@ -4,18 +4,18 @@ import (
 	"encoding/json"
 	"errors"
 	"html/template"
-	"log"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/gorilla/context"
 	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	"github.com/pokefeed/pokefeed-api/libhttp"
 	"github.com/pokefeed/pokefeed-api/models"
 )
 
+// PostSignupStruct struct
 type PostSignupStruct struct {
 	Email         string `json:"email"`
 	Username      string `json:"username"`
@@ -23,11 +23,13 @@ type PostSignupStruct struct {
 	PasswordAgain string `json:"password_again"`
 }
 
+// PostLoginStruct struct
 type PostLoginStruct struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
+// GetSignup method
 func GetSignup(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 
@@ -40,47 +42,55 @@ func GetSignup(w http.ResponseWriter, r *http.Request) {
 	tmpl.Execute(w, nil)
 }
 
+// OptionsSignup method
 func OptionsSignup(w http.ResponseWriter, r *http.Request) {
+	// TODO: move these header setters into a lib
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 }
 
+// PostSignup method
 func PostSignup(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 
-	Info := log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
+	// Info := log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
 
 	db := context.Get(r, "db").(*sqlx.DB)
 
+	// TODO: move into a util method
 	decoder := json.NewDecoder(r.Body)
 	var t PostSignupStruct
 	err := decoder.Decode(&t)
 
 	if err != nil {
-		libhttp.HandleErrorJson(w, err)
+		libhttp.HandleBadRequest(w, err)
 		return
 	}
-
-	Info.Println(t)
 
 	user, err2 := models.NewUser(db).Signup(nil, t.Email, t.Username, t.Password, t.PasswordAgain)
 	if err2 != nil {
-		Info.Println(err2)
-		libhttp.HandleErrorJson(w, err)
+		if ae, ok := err2.(*pq.Error); ok {
+			libhttp.HandlePostgresError(w, *ae)
+			return
+		}
+		libhttp.HandleBadRequest(w, err2)
 		return
 	}
 
-	// TODO: null check user.
+	if user == nil {
+		libhttp.HandleBadRequest(w, errors.New("User does not exist."))
+		return
+	}
 
-	// TODO: remove password?  It is hashed...
 	json.NewEncoder(w).Encode(*user)
 }
 
+// GetLoginWithoutSession method
 func GetLoginWithoutSession(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 
@@ -110,7 +120,7 @@ func GetLogin(w http.ResponseWriter, r *http.Request) {
 	GetLoginWithoutSession(w, r)
 }
 
-// PostLogin performs login.
+// OptionsLogin performs login.
 func OptionsLogin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -138,15 +148,21 @@ func PostLogin(w http.ResponseWriter, r *http.Request) {
 
 	u := models.NewUser(db)
 
-	user, err := u.GetUserByEmailAndPassword(nil, t.Email, t.Password)
-	if err != nil {
-		libhttp.HandleErrorJson(w, err)
+	user, err2 := u.GetUserByEmailAndPassword(nil, t.Email, t.Password)
+	if err2 != nil {
+		libhttp.HandleBadRequest(w, err2)
+		return
+	}
+
+	if user == nil {
+		libhttp.HandleBadRequest(w, errors.New("User does not exist."))
 		return
 	}
 
 	json.NewEncoder(w).Encode(*user)
 }
 
+// GetLogout method
 func GetLogout(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 
@@ -160,6 +176,7 @@ func GetLogout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/login", 302)
 }
 
+// PostPutDeleteUsersID method
 func PostPutDeleteUsersID(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 
@@ -171,6 +188,7 @@ func PostPutDeleteUsersID(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// PutUsersID method
 func PutUsersID(w http.ResponseWriter, r *http.Request) {
 	userId, err := getIdFromPath(w, r)
 	if err != nil {
@@ -215,6 +233,7 @@ func PutUsersID(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", 302)
 }
 
+// DeleteUsersID method
 func DeleteUsersID(w http.ResponseWriter, r *http.Request) {
 	err := errors.New("DELETE method is not implemented.")
 	libhttp.HandleErrorJson(w, err)

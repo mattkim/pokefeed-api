@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/lib/pq"
 )
 
 // BasicRealm is used when setting the WWW-Authenticate response header.
@@ -52,6 +54,26 @@ func HandleErrorJson(w http.ResponseWriter, err error) {
 		errMap = map[string]string{"Error": err.Error()}
 	}
 
-	errJson, _ := json.Marshal(errMap)
-	http.Error(w, string(errJson), http.StatusInternalServerError)
+	errJSON, _ := json.Marshal(errMap)
+	http.Error(w, string(errJSON), http.StatusInternalServerError)
+}
+
+// HandleBadRequest return an error response.
+func HandleBadRequest(w http.ResponseWriter, err error) {
+	var errMap map[string]string
+
+	if err == nil {
+		errMap = map[string]string{"Error": "Error struct is nil."}
+	} else {
+		errMap = map[string]string{"Error": err.Error()}
+	}
+
+	errJSON, _ := json.Marshal(errMap)
+	http.Error(w, string(errJSON), http.StatusBadRequest)
+}
+
+// HandlePostgresError return an error response parsing postgres error.
+func HandlePostgresError(w http.ResponseWriter, err pq.Error) {
+	errJSON, _ := json.Marshal(err)
+	http.Error(w, string(errJSON), http.StatusBadRequest)
 }

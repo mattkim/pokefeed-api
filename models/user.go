@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"regexp"
 
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/crypto/bcrypt"
@@ -83,9 +84,12 @@ func (u *User) GetUserByEmailAndPassword(tx *sqlx.Tx, email, password string) (*
 
 // Signup create a new record of user.
 func (u *User) Signup(tx *sqlx.Tx, email, username, password, passwordAgain string) (*UserRow, error) {
-	// TODO: setup username
 	if email == "" {
 		return nil, errors.New("Email cannot be blank.")
+	}
+	match, _ := regexp.MatchString(".+@.+\\..+", email)
+	if !match {
+		return nil, errors.New("Not a valid email format.")
 	}
 	if username == "" {
 		return nil, errors.New("Username cannot be blank.")
@@ -94,7 +98,7 @@ func (u *User) Signup(tx *sqlx.Tx, email, username, password, passwordAgain stri
 		return nil, errors.New("Password cannot be blank.")
 	}
 	if password != passwordAgain {
-		return nil, errors.New("Password is invalid.")
+		return nil, errors.New("Passwords do not match.")
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 5)
