@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pokefeed/pokefeed-api/libuuid"
@@ -21,10 +22,13 @@ func NewUser(db *sqlx.DB) *User {
 
 type UserRow struct {
 	// TODO: ID should be UUID
-	UUID     string `db:"uuid"`
-	Username string `db:"username"`
-	Email    string `db:"email"`
-	Password string `db:"password"`
+	UUID      string    `db:"uuid"`
+	Username  string    `db:"username"`
+	Email     string    `db:"email"`
+	Password  string    `db:"password"`
+	UpdatedAt time.Time `db:"updated_at"`
+	CreatedAt time.Time `db:"created_at"`
+	DeletedAt time.Time `db:"deleted_at"`
 }
 
 type User struct {
@@ -97,12 +101,17 @@ func (u *User) Signup(tx *sqlx.Tx, email, username, password, passwordAgain stri
 		return nil, err
 	}
 
+	// TODO: move into base_UUID
+	now := time.Now()
+
 	data := make(map[string]interface{})
 	// TODO: ignoring potential error here.
 	data["uuid"], _ = libuuid.NewUUID()
 	data["email"] = email
 	data["username"] = username
 	data["password"] = hashedPassword
+	data["updated_at"] = now
+	data["created_at"] = now
 
 	sqlResult, err := u.InsertIntoTable(tx, data)
 	if err != nil {

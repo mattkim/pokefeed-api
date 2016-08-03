@@ -2,21 +2,29 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"net/http"
 	"time"
+
+	"github.com/gorilla/context"
+	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
+	"github.com/pokefeed/pokefeed-api/libhttp"
+	"github.com/pokefeed/pokefeed-api/models"
 )
 
 type PostFeedStruct struct {
 	CreatedByUserUUID string  `json:"created_by_user_uuid"`
+	Username          string  `json:"username"`
 	Message           string  `json:"message"`
 	Pokemon           string  `json:"pokemon"`
 	Lat               float64 `json:"lat"`
 	Long              float64 `json:"long"`
+	Geocodes          string  `json:"geocodes"` // TODO: can we honor the jsonness here.
+	DisplayType       string  `json:"display_type"`
 }
 
 type ResultStruct struct {
-	ID     int32  `json:"id"`
 	Result string `json:"result"`
 }
 
@@ -69,20 +77,45 @@ func PostFeed(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 
-	// decoder := json.NewDecoder(r.Body)
-	// var t PostFeedStruct
-	// err := decoder.Decode(&t)
+	decoder := json.NewDecoder(r.Body)
+	var t PostFeedStruct
+	err := decoder.Decode(&t)
 
-	// if err != nil {
-	// 	libhttp.HandleErrorJson(w, err)
-	// 	return
-	// }
+	if err != nil {
+		libhttp.HandleBadRequest(w, err)
+		return
+	}
 
-	b := r.Body
+	db := context.Get(r, "db").(*sqlx.DB)
 
+	feed, err2 := models.NewFeed(db).Create(
+		nil,
+		t.Message,
+		t.Pokemon,
+		t.CreatedByUserUUID,
+		t.Lat,
+		t.Long,
+		t.Geocodes,
+		t.DisplayType,
+	)
+
+	if err2 != nil {
+		if ae, ok := err2.(*pq.Error); ok {
+			libhttp.HandlePostgresError(w, *ae)
+			return
+		}
+		libhttp.HandleBadRequest(w, err2)
+		return
+	}
+
+	if feed == nil {
+		libhttp.HandleBadRequest(w, errors.New("Feed does not exist."))
+		return
+	}
+
+	// Don't return anything to client.  Optimistically displaying.
 	response := ResultStruct{
-		ID:     1,
-		Result: fmt.Sprintf("PostFeed: %v", b),
+		Result: "PostFeed successful",
 	}
 	json.NewEncoder(w).Encode(response)
 }

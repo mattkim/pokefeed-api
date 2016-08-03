@@ -20,15 +20,16 @@ func NewFeed(db *sqlx.DB) *Feed {
 type FeedRow struct {
 	// TODO: ID should be UUID
 	UUID              string    `db:"uuid"`
-	Message           string    `db:"feedname"`
-	Pokemon           string    `db:"email"`
-	UpdatedAt         time.Time `db:"updated_at"`
-	CreatedAt         time.Time `db:"created_at"`
-	DeletedAt         time.Time `db:"deleted_at"`
-	CreatedByFeedUUID int64     `db:"created_by_feed_uuid"`
+	Message           string    `db:"message"`
+	Pokemon           string    `db:"pokemon"`
+	CreatedByUserUUID string    `db:"created_by_user_uuid"`
 	Lat               float64   `db:"lat"`
 	Long              float64   `db:"long"`
 	Geocodes          string    `db:"geocodes"` // TODO: can this be json type or map?
+	DisplayType       string    `db:"display_type"`
+	UpdatedAt         time.Time `db:"updated_at"`
+	CreatedAt         time.Time `db:"created_at"`
+	DeletedAt         time.Time `db:"deleted_at"`
 }
 
 type Feed struct {
@@ -67,12 +68,13 @@ func (f *Feed) GetByLocation(tx *sqlx.Tx, latTop float64, longLeft float64, latB
 // Signup create a new record of feed.
 func (f *Feed) Create(
 	tx *sqlx.Tx,
-	message,
-	pokemon,
-	created_by_uuid,
-	lat,
-	long,
+	message string,
+	pokemon string,
+	createdByUserUUID string,
+	lat float64,
+	long float64,
 	geocodes string,
+	displayType string,
 ) (*FeedRow, error) {
 	now := time.Now()
 
@@ -81,10 +83,11 @@ func (f *Feed) Create(
 	data["pokemon"] = pokemon
 	data["updated_at"] = now
 	data["created_at"] = now
-	data["created_by_uuid"] = created_by_uuid
+	data["created_by_user_uuid"] = createdByUserUUID
 	data["lat"] = lat
 	data["long"] = long
 	data["geocodes"] = geocodes
+	data["display_type"] = displayType
 
 	sqlResult, err := f.InsertIntoTable(tx, data)
 	if err != nil {
