@@ -3,12 +3,12 @@ package handlers
 
 import (
 	"errors"
-	"github.com/pokefeed/pokefeed-api/models"
+	"net/http"
+
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
-	"net/http"
-	"strconv"
+	"github.com/pokefeed/pokefeed-api/models"
 )
 
 func getCurrentUser(w http.ResponseWriter, r *http.Request) *models.UserRow {
@@ -17,16 +17,12 @@ func getCurrentUser(w http.ResponseWriter, r *http.Request) *models.UserRow {
 	return session.Values["user"].(*models.UserRow)
 }
 
-func getIdFromPath(w http.ResponseWriter, r *http.Request) (int64, error) {
-	userIdString := mux.Vars(r)["id"]
-	if userIdString == "" {
-		return -1, errors.New("user id cannot be empty.")
+func getUUIDFromPath(w http.ResponseWriter, r *http.Request) (string, error) {
+	userUUIDString := mux.Vars(r)["uuid"]
+	if userUUIDString == "" {
+		// TODO: why do I have to return empty string
+		return "", errors.New("user uuid cannot be empty.")
 	}
 
-	userId, err := strconv.ParseInt(userIdString, 10, 64)
-	if err != nil {
-		return -1, err
-	}
-
-	return userId, nil
+	return userUUIDString, nil
 }

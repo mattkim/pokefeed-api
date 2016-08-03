@@ -177,20 +177,20 @@ func GetLogout(w http.ResponseWriter, r *http.Request) {
 }
 
 // PostPutDeleteUsersID method
-func PostPutDeleteUsersID(w http.ResponseWriter, r *http.Request) {
+func PostPutDeleteUsersUUID(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 
 	method := r.FormValue("_method")
 	if method == "" || strings.ToLower(method) == "post" || strings.ToLower(method) == "put" {
-		PutUsersID(w, r)
+		PutUsersUUID(w, r)
 	} else if strings.ToLower(method) == "delete" {
-		DeleteUsersID(w, r)
+		DeleteUsersUUID(w, r)
 	}
 }
 
 // PutUsersID method
-func PutUsersID(w http.ResponseWriter, r *http.Request) {
-	userId, err := getIdFromPath(w, r)
+func PutUsersUUID(w http.ResponseWriter, r *http.Request) {
+	userUUID, err := getUUIDFromPath(w, r)
 	if err != nil {
 		libhttp.HandleErrorJson(w, err)
 		return
@@ -204,7 +204,7 @@ func PutUsersID(w http.ResponseWriter, r *http.Request) {
 
 	currentUser := session.Values["user"].(*models.UserRow)
 
-	if currentUser.ID != userId {
+	if currentUser.UUID != userUUID {
 		err := errors.New("Modifying other user is not allowed.")
 		libhttp.HandleErrorJson(w, err)
 		return
@@ -216,7 +216,7 @@ func PutUsersID(w http.ResponseWriter, r *http.Request) {
 
 	u := models.NewUser(db)
 
-	currentUser, err = u.UpdateEmailAndPasswordById(nil, currentUser.ID, email, password, passwordAgain)
+	currentUser, err = u.UpdateEmailAndPasswordByUUID(nil, currentUser.UUID, email, password, passwordAgain)
 	if err != nil {
 		libhttp.HandleErrorJson(w, err)
 		return
@@ -234,7 +234,7 @@ func PutUsersID(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteUsersID method
-func DeleteUsersID(w http.ResponseWriter, r *http.Request) {
+func DeleteUsersUUID(w http.ResponseWriter, r *http.Request) {
 	err := errors.New("DELETE method is not implemented.")
 	libhttp.HandleErrorJson(w, err)
 	return
