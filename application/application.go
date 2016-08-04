@@ -59,8 +59,12 @@ func (app *Application) mux() *gorilla_mux.Router {
 
 	router.Handle("/", MustLogin(http.HandlerFunc(handlers.GetHome))).Methods("GET")
 
-	router.HandleFunc("/getfeed", handlers.GetFeed).Methods("GET", "OPTIONS")
-	router.HandleFunc("/postfeed", handlers.PostFeed).Methods("POST", "OPTIONS")
+	router.HandleFunc("/latestfeeds", handlers.OptionsFeed).Methods("OPTIONS")
+	router.HandleFunc("/latestfeeds", handlers.GetLatestFeeds).Methods("GET")
+	router.HandleFunc("/getfeed", handlers.OptionsFeed).Methods("OPTIONS")
+	router.HandleFunc("/getfeed", handlers.GetFeed).Methods("GET")
+	router.HandleFunc("/postfeed", handlers.OptionsFeed).Methods("OPTIONS")
+	router.HandleFunc("/postfeed", handlers.PostFeed).Methods("POST")
 	router.HandleFunc("/signup", handlers.PostSignup).Methods("POST")
 	router.HandleFunc("/signup", handlers.OptionsSignup).Methods("OPTIONS")
 	router.HandleFunc("/login", handlers.PostLogin).Methods("POST")

@@ -13,11 +13,10 @@ CREATE UNIQUE INDEX idx_users_email on users (email);
 CREATE TABLE feeds (
     uuid TEXT PRIMARY KEY NOT NULL,
     message TEXT NOT NULL,
-    username TEXT NOT NULL,
     pokemon TEXT NOT NULL,
     lat DECIMAL NOT NULL,
     long DECIMAL NOT NULL,
-    geocodes TEXT NOT NULL,
+    geocodes JSON NOT NULL,
     display_type TEXT,
     created_by_user_uuid TEXT NOT NULL REFERENCES users(uuid),
     created_at TIMESTAMP NOT NULL,

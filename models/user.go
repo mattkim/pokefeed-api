@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	"github.com/pokefeed/pokefeed-api/libuuid"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -21,14 +22,13 @@ func NewUser(db *sqlx.DB) *User {
 }
 
 type UserRow struct {
-	// TODO: ID should be UUID
-	UUID      string    `db:"uuid"`
-	Username  string    `db:"username"`
-	Email     string    `db:"email"`
-	Password  string    `db:"password"`
-	UpdatedAt time.Time `db:"updated_at"`
-	CreatedAt time.Time `db:"created_at"`
-	DeletedAt time.Time `db:"deleted_at"`
+	UUID      string      `db:"uuid"`
+	Username  string      `db:"username"`
+	Email     string      `db:"email"`
+	Password  string      `db:"password"`
+	UpdatedAt pq.NullTime `db:"updated_at"`
+	CreatedAt pq.NullTime `db:"created_at"`
+	DeletedAt pq.NullTime `db:"deleted_at"`
 }
 
 type User struct {
@@ -102,6 +102,7 @@ func (u *User) Signup(tx *sqlx.Tx, email, username, password, passwordAgain stri
 	}
 
 	// TODO: move into base_UUID
+	// TODO: also make sure this is utc
 	now := time.Now()
 
 	data := make(map[string]interface{})
