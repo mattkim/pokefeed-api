@@ -59,6 +59,8 @@ func (app *Application) mux() *gorilla_mux.Router {
 
 	router.Handle("/", MustLogin(http.HandlerFunc(handlers.GetHome))).Methods("GET")
 
+	router.HandleFunc("/allpokemon", handlers.OptionsAllPokemon).Methods("OPTIONS")
+	router.HandleFunc("/allpokemon", handlers.GetAllPokemon).Methods("GET")
 	router.HandleFunc("/latestfeeds", handlers.OptionsFeed).Methods("OPTIONS")
 	router.HandleFunc("/latestfeeds", handlers.GetLatestFeeds).Methods("GET")
 	router.HandleFunc("/getfeed", handlers.OptionsFeed).Methods("OPTIONS")

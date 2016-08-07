@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/jmoiron/sqlx/types"
 
 	"github.com/lib/pq"
 	"github.com/pokefeed/pokefeed-api/libuuid"
@@ -23,17 +22,16 @@ func NewFeed(db *sqlx.DB) *Feed {
 }
 
 type FeedRow struct {
-	UUID              string         `db:"uuid"`
-	Message           string         `db:"message"`
-	Pokemon           string         `db:"pokemon"`
-	CreatedByUserUUID string         `db:"created_by_user_uuid"`
-	Lat               float64        `db:"lat"`
-	Long              float64        `db:"long"`
-	Geocodes          types.JSONText `db:"geocodes"` // TODO: can this be json type or map?
-	DisplayType       string         `db:"display_type"`
-	UpdatedAt         pq.NullTime    `db:"updated_at"`
-	CreatedAt         pq.NullTime    `db:"created_at"`
-	DeletedAt         pq.NullTime    `db:"deleted_at"`
+	UUID              string      `db:"uuid"`
+	Message           string      `db:"message"`
+	Pokemon           string      `db:"pokemon"`
+	CreatedByUserUUID string      `db:"created_by_user_uuid"`
+	Lat               float64     `db:"lat"`
+	Long              float64     `db:"long"`
+	FormattedAddress  string      `db:"formatted_address"`
+	UpdatedAt         pq.NullTime `db:"updated_at"`
+	CreatedAt         pq.NullTime `db:"created_at"`
+	DeletedAt         pq.NullTime `db:"deleted_at"`
 }
 
 type Feed struct {
@@ -87,11 +85,10 @@ func (f *Feed) GetLatest(tx *sqlx.Tx) ([]*FeedRow, error) {
 		pokemon           string
 		lat               float64
 		long              float64
-		geocodes          types.JSONText
-		displayType       *string
+		formattedAddress  string
 		createdAt         pq.NullTime
 	)
-	query := "SELECT f.created_by_user_uuid, f.message, f.pokemon, f.lat, f.long, f.geocodes, f.display_type, f.created_at FROM feeds as f ORDER BY f.created_at DESC LIMIT 100"
+	query := "SELECT f.created_by_user_uuid, f.message, f.pokemon, f.lat, f.long, f.formatted_address, f.created_at FROM feeds as f ORDER BY f.created_at DESC LIMIT 100"
 	rows, err := f.db.Query(query)
 
 	// Info := log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
@@ -104,8 +101,7 @@ func (f *Feed) GetLatest(tx *sqlx.Tx) ([]*FeedRow, error) {
 			&pokemon,
 			&lat,
 			&long,
-			&geocodes,
-			&displayType,
+			&formattedAddress,
 			&createdAt,
 		); err != nil {
 			log.Fatal(err)
@@ -115,12 +111,7 @@ func (f *Feed) GetLatest(tx *sqlx.Tx) ([]*FeedRow, error) {
 		feed.Pokemon = pokemon
 		feed.Lat = lat
 		feed.Long = long
-		feed.Geocodes = geocodes
-
-		if displayType != nil {
-			feed.DisplayType = *displayType
-		}
-
+		feed.FormattedAddress = formattedAddress
 		feed.CreatedAt = createdAt
 		// Info.Println(feed)
 		feeds = append(feeds, feed)
@@ -153,8 +144,7 @@ func (f *Feed) Create(
 	createdByUserUUID string,
 	lat float64,
 	long float64,
-	geocodes types.JSONText, // TODO: double check this works?
-	displayType string,
+	formattedAddress string,
 ) (*FeedRow, error) {
 	now := time.Now()
 
@@ -167,8 +157,7 @@ func (f *Feed) Create(
 	data["created_by_user_uuid"] = createdByUserUUID
 	data["lat"] = lat
 	data["long"] = long
-	data["geocodes"] = geocodes
-	data["display_type"] = displayType
+	data["formatted_address"] = formattedAddress
 
 	sqlResult, err := f.InsertIntoTable(tx, data)
 	if err != nil {

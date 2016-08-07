@@ -3,29 +3,24 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
-	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/gorilla/context"
 	"github.com/jmoiron/sqlx"
-	"github.com/jmoiron/sqlx/types"
 	"github.com/lib/pq"
+	"github.com/pokefeed/pokefeed-api/constants"
 	"github.com/pokefeed/pokefeed-api/libhttp"
 	"github.com/pokefeed/pokefeed-api/models"
 )
 
 type PostFeedStruct struct {
-	CreatedByUserUUID string         `json:"created_by_user_uuid"`
-	Username          string         `json:"username"`
-	Message           string         `json:"message"`
-	Pokemon           string         `json:"pokemon"`
-	Lat               float64        `json:"lat"`
-	Long              float64        `json:"long"`
-	Geocodes          types.JSONText `json:"geocodes"` // TODO: can we honor the jsonness here.
-	DisplayType       string         `json:"display_type"`
+	CreatedByUserUUID string  `json:"created_by_user_uuid"`
+	Message           string  `json:"message"`
+	Pokemon           string  `json:"pokemon"`
+	Lat               float64 `json:"lat"`
+	Long              float64 `json:"long"`
+	FormattedAddress  string  `json:"formatted_address"`
 }
 
 type ResultStruct struct {
@@ -33,29 +28,36 @@ type ResultStruct struct {
 }
 
 type GetFeedResultStruct struct {
-	UUID              string    `json:"uuid"`
-	Username          string    `json:"username"`
-	CreatedByUserUUID string    `json:"created_by_user_uuid"`
-	Message           string    `json:"message"`
-	Pokemon           string    `json:"pokemon"`
-	PokemonImageURL   string    `json:"pokemon_image_url"`
-	Lat               float64   `json:"lat"`
-	Long              float64   `json:"long"`
-	FormattedAddress  string    `json:"formatted_address"`
-	CreatedAtDate     time.Time `json:"created_at_date"`
-	UpdatedAtDate     time.Time `json:"updated_at_date"`
-	DeletedAtDate     time.Time `json:"deleted_at_date"`
+	UUID              string `json:"uuid"`
+	Username          string `json:"username"`
+	CreatedByUserUUID string `json:"created_by_user_uuid"`
+	Message           string `json:"message"`
+	Pokemon           string `json:"pokemon"`
+	// PokemonImageURL   string    `json:"pokemon_image_url"`
+	Lat              float64   `json:"lat"`
+	Long             float64   `json:"long"`
+	FormattedAddress string    `json:"formatted_address"`
+	CreatedAtDate    time.Time `json:"created_at_date"`
+	UpdatedAtDate    time.Time `json:"updated_at_date"`
+	DeletedAtDate    time.Time `json:"deleted_at_date"`
 }
 
 type GetLatestFeedsStruct struct {
-	Username         string    `json:"username"`
-	Message          string    `json:"message"`
-	Pokemon          string    `json:"pokemon"`
-	PokemonImageURL  string    `json:"pokemon_image_url"` // Should I fetch this from backend
+	Username string `json:"username"`
+	Message  string `json:"message"`
+	Pokemon  string `json:"pokemon"`
+	// PokemonImageURL  string    `json:"pokemon_image_url"` // Should I fetch this from backend
 	Lat              float64   `json:"lat"`
 	Long             float64   `json:"long"`
 	FormattedAddress string    `json:"formatted_address"`
 	CreatedAt        time.Time `json:"created_at"`
+}
+
+type GetAllPokemonStruct struct {
+	ID          int    `json:"id"`
+	Name        string `json:"name"`
+	DisplayName string `json:"display_name"`
+	ImageURL    string `json:"image_url"`
 }
 
 func GetLatestFeeds(w http.ResponseWriter, r *http.Request) {
@@ -64,7 +66,7 @@ func GetLatestFeeds(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 
-	Info := log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
+	// Info := log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
 
 	db := context.Get(r, "db").(*sqlx.DB)
 	f := models.NewFeed(db)
@@ -83,46 +85,15 @@ func GetLatestFeeds(w http.ResponseWriter, r *http.Request) {
 		}
 		result := &GetLatestFeedsStruct{}
 
-		// Find the right geocode here
-		var goodg map[string]interface{}
-		// var f []interface{}
-		var gs []interface{}
-		// json.Unmarshal(feed.Geocodes, &f)
-		json.Unmarshal(feed.Geocodes, &gs)
-		if gs == nil {
-			// TODO: this is super weird, but sometimes we cannot unmarshal geocodes even though it exists.
-			Info.Println("**** skipping")
-			Info.Println(fmt.Sprintf("%+v\n", feed))
-			Info.Println(feed)
-		} else {
-			// gs := f.([]interface{})
-			goodg = gs[0].(map[string]interface{}) // default to the first one.
-			for _, g := range gs {
-				gn := g.(map[string]interface{})
-				gnTypes := gn["types"].([]interface{})
-				for _, t := range gnTypes {
-					if t == feed.DisplayType {
-						goodg = gn
-					}
-				}
-			}
-
-			Info.Println(goodg)
-			// Fetch the formatted address and lat long here.
-			formattedAddress := goodg["formatted_address"].(string)
-			lat := goodg["geometry"].(map[string]interface{})["location"].(map[string]interface{})["lat"].(float64)
-			long := goodg["geometry"].(map[string]interface{})["location"].(map[string]interface{})["lng"].(float64)
-
-			result.Username = user.Username
-			result.Message = feed.Message
-			result.Pokemon = feed.Pokemon
-			// TODO: fetch url from map.
-			result.CreatedAt = feed.CreatedAt.Time
-			result.Lat = lat
-			result.Long = long
-			result.FormattedAddress = formattedAddress
-			results = append(results, result)
-		}
+		result.Username = user.Username
+		result.Message = feed.Message
+		result.Pokemon = feed.Pokemon
+		// result.PokemonImageURL = constants.GetByName(feed.Pokemon).ImageURL
+		result.CreatedAt = feed.CreatedAt.Time
+		result.Lat = feed.Lat
+		result.Long = feed.Long
+		result.FormattedAddress = feed.FormattedAddress
+		results = append(results, result)
 	}
 	if err != nil {
 		libhttp.HandleBadRequest(w, err)
@@ -145,7 +116,7 @@ func GetFeed(w http.ResponseWriter, r *http.Request) {
 		Message:           "Everyone get over here and catch this guy!",
 		Pokemon:           "Charmander",
 		// Create a map between pokemon name and image url, and then return as base64 image.
-		PokemonImageURL:  "http://static.giantbomb.com/uploads/scale_small/0/6087/2438704-1202149925_t.png",
+		// PokemonImageURL:  "http://static.giantbomb.com/uploads/scale_small/0/6087/2438704-1202149925_t.png",
 		Lat:              37.7752315,
 		Long:             -122.4197165,
 		FormattedAddress: "11 Oak St, San Francisco, CA 94102, USA",
@@ -191,8 +162,7 @@ func PostFeed(w http.ResponseWriter, r *http.Request) {
 		t.CreatedByUserUUID,
 		t.Lat,
 		t.Long,
-		t.Geocodes,
-		t.DisplayType,
+		t.FormattedAddress,
 	)
 
 	if err2 != nil {
@@ -214,4 +184,75 @@ func PostFeed(w http.ResponseWriter, r *http.Request) {
 		Result: "PostFeed successful",
 	}
 	json.NewEncoder(w).Encode(response)
+}
+
+func OptionsAllPokemon(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+}
+
+func GetAllPokemon(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+
+	pokemon := constants.GetMap()
+
+	results := []*GetAllPokemonStruct{}
+
+	// Because pokemon returns a map... we need to grab it out.
+	// TODO: how to just return the map anyways.
+	// TODO: I guess I should just use IDs...
+	for _, p := range pokemon {
+		result := &GetAllPokemonStruct{}
+		result.ID = p.ID
+		result.Name = p.Name
+		result.DisplayName = p.DisplayName
+		result.ImageURL = p.ImageURL
+		results = append(results, result)
+	}
+
+	json.NewEncoder(w).Encode(results)
+}
+
+func GetAllPokemonDB(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+
+	db := context.Get(r, "db").(*sqlx.DB)
+
+	pokemon, err2 := models.NewPokemon(db).GetAll(
+		nil,
+	)
+
+	if err2 != nil {
+		if ae, ok := err2.(*pq.Error); ok {
+			libhttp.HandlePostgresError(w, *ae)
+			return
+		}
+		libhttp.HandleBadRequest(w, err2)
+		return
+	}
+
+	if pokemon == nil {
+		libhttp.HandleBadRequest(w, errors.New("pokemon does not exist."))
+		return
+	}
+
+	results := []*GetAllPokemonStruct{}
+
+	for _, p := range pokemon {
+		result := &GetAllPokemonStruct{}
+		result.ID = p.ID
+		result.Name = p.Name
+		// result.ImageURL = p.ImageURL
+		results = append(results, result)
+	}
+
+	json.NewEncoder(w).Encode(results)
 }
