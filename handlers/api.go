@@ -124,8 +124,8 @@ func GetFeed(w http.ResponseWriter, r *http.Request) {
 		// http://maps.googleapis.com/maps/api/geocode/json?latlng=37.7752315,-122.4197165&sensor=true
 		CreatedAtDate: time.Date(2016, 7, 17, 20, 34, 58, 651387237, time.UTC),
 		// TODO: this should return UTC but it does not seem to.
-		UpdatedAtDate: time.Now(),
-		DeletedAtDate: time.Now(),
+		UpdatedAtDate: time.Now().UTC(),
+		DeletedAtDate: time.Now().UTC(),
 	}
 	response := []GetFeedResultStruct{result, result, result, result, result}
 	json.NewEncoder(w).Encode(response)

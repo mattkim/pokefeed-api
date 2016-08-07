@@ -103,7 +103,7 @@ func (u *User) Signup(tx *sqlx.Tx, email, username, password, passwordAgain stri
 
 	// TODO: move into base_UUID
 	// TODO: also make sure this is utc
-	now := time.Now()
+	now := time.Now().UTC()
 
 	data := make(map[string]interface{})
 	// TODO: ignoring potential error here.

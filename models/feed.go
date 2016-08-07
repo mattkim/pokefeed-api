@@ -146,7 +146,7 @@ func (f *Feed) Create(
 	long float64,
 	formattedAddress string,
 ) (*FeedRow, error) {
-	now := time.Now()
+	now := time.Now().UTC()
 
 	data := make(map[string]interface{})
 	data["uuid"], _ = libuuid.NewUUID()
