@@ -86,7 +86,7 @@ func (f *Feed) GetFeeds(tx *sqlx.Tx, lat float64, long float64, latRadius float6
 	AND f.long > $3
 	AND f.long < $4
 	ORDER BY f.created_at DESC
-	LIMIT 100`
+	LIMIT 50`
 
 	Info := log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
 	Info.Println(query)
