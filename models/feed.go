@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -57,17 +58,73 @@ func (f *Feed) GetByUUID(tx *sqlx.Tx, uuid string) (*FeedRow, error) {
 	return feed, err
 }
 
-// type GetLatestFeedsStruct struct {
-// 	Username         string    `json:"username"`
-// 	Message          string    `json:"message"`
-// 	Pokemon          string    `json:"pokemon"`
-// 	PokemonImageURL  string    `json:"pokemon_image_url"` // Should I fetch this from backend
-// 	Lat              float64   `json:"lat"`
-// 	Long             float64   `json:"long"`
-// 	FormattedAddress string    `json:"formatted_address"`
-// 	CreatedAtDate    time.Time `json:"created_at_date"`
-// 	UpdatedAtDate    time.Time `json:"updated_at_date"`
-// }
+func (f *Feed) GetFeeds(tx *sqlx.Tx, lat float64, long float64, latRadius float64, longRadius float64) ([]*FeedRow, error) {
+	feeds := []*FeedRow{}
+
+	var (
+		createdByUserUUID string
+		message           string
+		pokemonName       string
+		latResult         float64
+		longResult        float64
+		formattedAddress  string
+		createdAt         pq.NullTime
+	)
+
+	// TODO: how to do paging.
+	query := `SELECT
+		f.created_by_user_uuid,
+		f.message,
+		f.pokemon_name,
+		f.lat,
+		f.long,
+		f.formatted_address,
+		f.created_at
+	FROM feeds as f
+	WHERE f.lat > $1
+	AND f.lat < $2
+	AND f.long > $3
+	AND f.long < $4
+	ORDER BY f.created_at DESC
+	LIMIT 100`
+
+	Info := log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
+	Info.Println(query)
+
+	rows, err := f.db.Query(query, lat-latRadius, lat+latRadius, long-longRadius, long+longRadius)
+
+	for rows.Next() {
+		feed := &FeedRow{}
+		if err2 := rows.Scan(
+			&createdByUserUUID,
+			&message,
+			&pokemonName,
+			&latResult,
+			&longResult,
+			&formattedAddress,
+			&createdAt,
+		); err2 != nil {
+			log.Fatal(err2)
+		}
+		feed.CreatedByUserUUID = createdByUserUUID
+		feed.Message = message
+		feed.PokemonName = pokemonName
+		feed.Lat = lat
+		feed.Long = long
+		feed.FormattedAddress = formattedAddress
+		feed.CreatedAt = createdAt
+		// Info.Println(feed)
+		feeds = append(feeds, feed)
+	}
+
+	// Info.Println(feeds)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return feeds, err
+}
 
 // GetLatest returns record by email.  Needs to really be a bounding box right.
 func (f *Feed) GetLatest(tx *sqlx.Tx) ([]*FeedRow, error) {
@@ -88,7 +145,7 @@ func (f *Feed) GetLatest(tx *sqlx.Tx) ([]*FeedRow, error) {
 		formattedAddress  string
 		createdAt         pq.NullTime
 	)
-	query := "SELECT f.created_by_user_uuid, f.message, f.pokemon_name, f.lat, f.long, f.formatted_address, f.created_at FROM feeds as f ORDER BY f.created_at DESC LIMIT 100"
+	query := "SELECT f.created_by_user_uuid, f.message, f.pokemon_name, f.lat, f.long, f.formatted_address, f.created_at FROM feeds as f ORDER BY f.created_at DESC LIMIT 50"
 	rows, err := f.db.Query(query)
 
 	// Info := log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)

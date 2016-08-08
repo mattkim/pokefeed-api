@@ -3,7 +3,10 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/context"
@@ -50,6 +53,11 @@ type GetLatestFeedsStruct struct {
 	Long             float64   `json:"long"`
 	FormattedAddress string    `json:"formatted_address"`
 	CreatedAt        time.Time `json:"created_at"`
+}
+
+type GetFeedsStruct struct {
+	Lat  float64 `json:"lat"`
+	Long float64 `json:"long"`
 }
 
 type GetAllPokemonStruct struct {
@@ -101,32 +109,56 @@ func GetLatestFeeds(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(results)
 }
 
-func GetFeed(w http.ResponseWriter, r *http.Request) {
+func GetFeeds(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 
-	result := GetFeedResultStruct{
-		UUID:              "a551ebe9-8b11-466f-ad25-797073b05b8b",
-		Username:          "ilovepokemon23",
-		CreatedByUserUUID: "b89d86f1-5502-4f17-8e68-6945206f2b3c",
-		Message:           "Everyone get over here and catch this guy!",
-		Pokemon:           "Charmander",
-		// Create a map between pokemon name and image url, and then return as base64 image.
-		// PokemonImageURL:  "http://static.giantbomb.com/uploads/scale_small/0/6087/2438704-1202149925_t.png",
-		Lat:              37.7752315,
-		Long:             -122.4197165,
-		FormattedAddress: "11 Oak St, San Francisco, CA 94102, USA",
-		// Use google apis to reverse encode the address
-		// http://maps.googleapis.com/maps/api/geocode/json?latlng=37.7752315,-122.4197165&sensor=true
-		CreatedAtDate: time.Date(2016, 7, 17, 20, 34, 58, 651387237, time.UTC),
-		// TODO: this should return UTC but it does not seem to.
-		UpdatedAtDate: time.Now().UTC(),
-		DeletedAtDate: time.Now().UTC(),
+	Info := log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
+
+	lat, _ := strconv.ParseFloat(r.URL.Query()["lat"][0], 64)
+	long, _ := strconv.ParseFloat(r.URL.Query()["long"][0], 64)
+	latRadius, _ := strconv.ParseFloat(r.URL.Query()["latRadius"][0], 64)
+	longRadius, _ := strconv.ParseFloat(r.URL.Query()["longRadius"][0], 64)
+
+	db := context.Get(r, "db").(*sqlx.DB)
+	f := models.NewFeed(db)
+	u := models.NewUser(db)
+
+	Info.Println(lat)
+	Info.Println(long)
+
+	feeds, err := f.GetFeeds(nil, lat, long, latRadius, longRadius)
+
+	Info.Println(feeds)
+
+	results := []*GetLatestFeedsStruct{}
+
+	for _, feed := range feeds {
+		user, err := u.GetByUUID(nil, feed.CreatedByUserUUID)
+
+		if err != nil {
+			libhttp.HandleBadRequest(w, err)
+			return
+		}
+		result := &GetLatestFeedsStruct{}
+
+		result.Username = user.Username
+		result.Message = feed.Message
+		result.PokemonName = feed.PokemonName
+		result.CreatedAt = feed.CreatedAt.Time
+		result.Lat = feed.Lat
+		result.Long = feed.Long
+		result.FormattedAddress = feed.FormattedAddress
+		results = append(results, result)
 	}
-	response := []GetFeedResultStruct{result, result, result, result, result}
-	json.NewEncoder(w).Encode(response)
+	if err != nil {
+		libhttp.HandleBadRequest(w, err)
+		return
+	}
+
+	json.NewEncoder(w).Encode(results)
 }
 
 func OptionsFeed(w http.ResponseWriter, r *http.Request) {
