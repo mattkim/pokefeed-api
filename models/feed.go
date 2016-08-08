@@ -24,7 +24,7 @@ func NewFeed(db *sqlx.DB) *Feed {
 type FeedRow struct {
 	UUID              string      `db:"uuid"`
 	Message           string      `db:"message"`
-	Pokemon           string      `db:"pokemon"`
+	PokemonName       string      `db:"pokemon_name"`
 	CreatedByUserUUID string      `db:"created_by_user_uuid"`
 	Lat               float64     `db:"lat"`
 	Long              float64     `db:"long"`
@@ -82,13 +82,13 @@ func (f *Feed) GetLatest(tx *sqlx.Tx) ([]*FeedRow, error) {
 	var (
 		createdByUserUUID string
 		message           string
-		pokemon           string
+		pokemonName       string
 		lat               float64
 		long              float64
 		formattedAddress  string
 		createdAt         pq.NullTime
 	)
-	query := "SELECT f.created_by_user_uuid, f.message, f.pokemon, f.lat, f.long, f.formatted_address, f.created_at FROM feeds as f ORDER BY f.created_at DESC LIMIT 100"
+	query := "SELECT f.created_by_user_uuid, f.message, f.pokemon_name, f.lat, f.long, f.formatted_address, f.created_at FROM feeds as f ORDER BY f.created_at DESC LIMIT 100"
 	rows, err := f.db.Query(query)
 
 	// Info := log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
@@ -98,7 +98,7 @@ func (f *Feed) GetLatest(tx *sqlx.Tx) ([]*FeedRow, error) {
 		if err := rows.Scan(
 			&createdByUserUUID,
 			&message,
-			&pokemon,
+			&pokemonName,
 			&lat,
 			&long,
 			&formattedAddress,
@@ -108,7 +108,7 @@ func (f *Feed) GetLatest(tx *sqlx.Tx) ([]*FeedRow, error) {
 		}
 		feed.CreatedByUserUUID = createdByUserUUID
 		feed.Message = message
-		feed.Pokemon = pokemon
+		feed.PokemonName = pokemonName
 		feed.Lat = lat
 		feed.Long = long
 		feed.FormattedAddress = formattedAddress
@@ -140,7 +140,7 @@ func (f *Feed) GetByLocation(tx *sqlx.Tx, latTop float64, longLeft float64, latB
 func (f *Feed) Create(
 	tx *sqlx.Tx,
 	message string,
-	pokemon string,
+	pokemonName string,
 	createdByUserUUID string,
 	lat float64,
 	long float64,
@@ -151,7 +151,7 @@ func (f *Feed) Create(
 	data := make(map[string]interface{})
 	data["uuid"], _ = libuuid.NewUUID()
 	data["message"] = message
-	data["pokemon"] = pokemon
+	data["pokemon_name"] = pokemonName
 	data["updated_at"] = now
 	data["created_at"] = now
 	data["created_by_user_uuid"] = createdByUserUUID

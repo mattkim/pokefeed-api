@@ -29,6 +29,12 @@ type PostLoginStruct struct {
 	Password string `json:"password"`
 }
 
+type UserResultStruct struct {
+	UUID     string `json:"uuid"`
+	Email    string `json:"email"`
+	Username string `json:"username"`
+}
+
 // GetSignup method
 func GetSignup(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
@@ -87,7 +93,13 @@ func PostSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(*user)
+	userResult := UserResultStruct{
+		UUID:     user.UUID,
+		Email:    user.Email,
+		Username: user.Username,
+	}
+
+	json.NewEncoder(w).Encode(userResult)
 }
 
 // GetLoginWithoutSession method
@@ -159,7 +171,13 @@ func PostLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(*user)
+	userResult := UserResultStruct{
+		UUID:     user.UUID,
+		Email:    user.Email,
+		Username: user.Username,
+	}
+
+	json.NewEncoder(w).Encode(userResult)
 }
 
 // GetLogout method

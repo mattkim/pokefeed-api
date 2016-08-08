@@ -17,7 +17,7 @@ import (
 type PostFeedStruct struct {
 	CreatedByUserUUID string  `json:"created_by_user_uuid"`
 	Message           string  `json:"message"`
-	Pokemon           string  `json:"pokemon"`
+	PokemonName       string  `json:"pokemon_name"`
 	Lat               float64 `json:"lat"`
 	Long              float64 `json:"long"`
 	FormattedAddress  string  `json:"formatted_address"`
@@ -43,10 +43,9 @@ type GetFeedResultStruct struct {
 }
 
 type GetLatestFeedsStruct struct {
-	Username string `json:"username"`
-	Message  string `json:"message"`
-	Pokemon  string `json:"pokemon"`
-	// PokemonImageURL  string    `json:"pokemon_image_url"` // Should I fetch this from backend
+	Username         string    `json:"username"`
+	Message          string    `json:"message"`
+	PokemonName      string    `json:"pokemon_name"`
 	Lat              float64   `json:"lat"`
 	Long             float64   `json:"long"`
 	FormattedAddress string    `json:"formatted_address"`
@@ -87,8 +86,7 @@ func GetLatestFeeds(w http.ResponseWriter, r *http.Request) {
 
 		result.Username = user.Username
 		result.Message = feed.Message
-		result.Pokemon = feed.Pokemon
-		// result.PokemonImageURL = constants.GetByName(feed.Pokemon).ImageURL
+		result.PokemonName = feed.PokemonName
 		result.CreatedAt = feed.CreatedAt.Time
 		result.Lat = feed.Lat
 		result.Long = feed.Long
@@ -158,7 +156,7 @@ func PostFeed(w http.ResponseWriter, r *http.Request) {
 	feed, err2 := models.NewFeed(db).Create(
 		nil,
 		t.Message,
-		t.Pokemon,
+		t.PokemonName,
 		t.CreatedByUserUUID,
 		t.Lat,
 		t.Long,
