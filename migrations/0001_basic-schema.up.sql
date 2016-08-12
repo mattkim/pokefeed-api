@@ -10,18 +10,6 @@ CREATE TABLE users (
 
 CREATE UNIQUE INDEX idx_users_email on users (email);
 
-CREATE TABLE pokemon (
-    id INT PRIMARY KEY NOT NULL,
-    name TEXT NOT NULL,
-    display_name TEXT NOT NULL,
-    image_url TEXT NOT NULL,
-    created_at timestamp with time zone NOT NULL,
-    updated_at timestamp with time zone NOT NULL,
-    deleted_at timestamp with time zone
-);
-
-CREATE UNIQUE INDEX idx_pokemon_name on pokemon (name);
-
 CREATE TABLE feed_items (
     uuid VARCHAR(255) PRIMARY KEY NOT NULL,
     message TEXT NOT NULL,
