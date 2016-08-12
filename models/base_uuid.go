@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
+	"os"
 	"strings"
 
 	"github.com/jmoiron/sqlx"
@@ -50,6 +52,8 @@ func (b *BaseUUID) newTransactionIfNeeded(tx *sqlx.Tx) (*sqlx.Tx, bool, error) {
 
 // InsertIntoTable method
 func (b *BaseUUID) InsertIntoTable(tx *sqlx.Tx, data map[string]interface{}) (*InsertResultUUID, error) {
+	Info := log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
+
 	if b.table == "" {
 		return nil, errors.New("Table must not be empty.")
 	}
@@ -81,6 +85,8 @@ func (b *BaseUUID) InsertIntoTable(tx *sqlx.Tx, data map[string]interface{}) (*I
 		strings.Join(keys, ","),
 		strings.Join(dollarMarks, ","))
 
+	Info.Println(query)
+
 	// TODO: is returning a pointer here correct?
 	result := &InsertResultUUID{}
 	result.rowsAffected = 1
@@ -95,10 +101,18 @@ func (b *BaseUUID) InsertIntoTable(tx *sqlx.Tx, data map[string]interface{}) (*I
 		}
 
 		result.lastInsertUUID = lastInsertUUID
+	} else {
+		// TODO: errors?
+		Info.Println("trying MustExec...?")
+		tx.MustExec(query, values...)
 	}
 
 	if wrapInSingleTransaction == true {
+		Info.Println("committing?")
 		err = tx.Commit()
+		Info.Println(err)
+	} else {
+		Info.Println("not committing...")
 	}
 
 	return result, err

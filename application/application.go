@@ -59,19 +59,20 @@ func (app *Application) mux() *gorilla_mux.Router {
 
 	router.Handle("/", MustLogin(http.HandlerFunc(handlers.GetHome))).Methods("GET")
 
-	router.HandleFunc("/allpokemon", handlers.OptionsAllPokemon).Methods("OPTIONS")
-	router.HandleFunc("/allpokemon", handlers.GetAllPokemon).Methods("GET")
-	router.HandleFunc("/latestfeeds", handlers.OptionsFeed).Methods("OPTIONS")
+	// New stuff
+	router.HandleFunc("/allfeedtags", handlers.Options).Methods("OPTIONS")
+	router.HandleFunc("/latestfeeds", handlers.Options).Methods("OPTIONS")
+	router.HandleFunc("/getfeeds", handlers.Options).Methods("OPTIONS")
+	router.HandleFunc("/postfeed", handlers.Options).Methods("OPTIONS")
+	router.HandleFunc("/signup", handlers.Options).Methods("OPTIONS")
+	router.HandleFunc("/login", handlers.Options).Methods("OPTIONS")
+
+	router.HandleFunc("/allfeedtags", handlers.GetAllFeedTags).Methods("GET")
 	router.HandleFunc("/latestfeeds", handlers.GetLatestFeeds).Methods("GET")
-	router.HandleFunc("/getfeeds", handlers.OptionsFeed).Methods("OPTIONS")
 	router.HandleFunc("/getfeeds", handlers.GetFeeds).Methods("GET")
-	router.HandleFunc("/postfeed", handlers.OptionsFeed).Methods("OPTIONS")
 	router.HandleFunc("/postfeed", handlers.PostFeed).Methods("POST")
 	router.HandleFunc("/signup", handlers.PostSignup).Methods("POST")
-	router.HandleFunc("/signup", handlers.OptionsSignup).Methods("OPTIONS")
 	router.HandleFunc("/login", handlers.PostLogin).Methods("POST")
-	router.HandleFunc("/login", handlers.OptionsLogin).Methods("OPTIONS")
-	router.HandleFunc("/logout", handlers.GetLogout).Methods("GET", "OPTIONS")
 
 	router.Handle("/users/{id:[0-9]+}", MustLogin(http.HandlerFunc(handlers.PostPutDeleteUsersUUID))).Methods("POST", "PUT", "DELETE")
 
