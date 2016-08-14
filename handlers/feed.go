@@ -10,6 +10,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/pokefeed/pokefeed-api/libhttp"
+	"github.com/pokefeed/pokefeed-api/libuuid"
 	"github.com/pokefeed/pokefeed-api/mappers"
 	"github.com/pokefeed/pokefeed-api/models"
 	"github.com/pokefeed/pokefeed-api/structs"
@@ -32,6 +33,7 @@ func GetFeeds(w http.ResponseWriter, r *http.Request) {
 	f := models.NewFeedItem(db)
 	u := models.NewUser(db)
 	ft := models.NewFeedTag(db)
+	c := models.NewComment(db)
 
 	feedItems, _ := f.GetByLocation(nil, lat, long, latRadius, longRadius)
 
@@ -40,13 +42,23 @@ func GetFeeds(w http.ResponseWriter, r *http.Request) {
 	for _, feedItem := range feedItems {
 		user, _ := u.GetByUUID(nil, feedItem.CreatedByUserUUID)
 		feedTags, _ := ft.GetByFeedUUID(nil, feedItem.UUID)
+		comments, _ := c.GetByFeedUUID(nil, feedItem.UUID)
 
-		// TODO is pointer to struct necessary?
+		commentsResult := []*structs.CommentStruct{}
+
+		for _, comment := range comments {
+			// TODO: include these in the join query man....
+			user2, _ := u.GetByUUID(nil, comment.CreatedByUserUUID)
+			commentResult := mappers.CommentMapperDBToJSON(comment, user2)
+			commentsResult = append(commentsResult, &(commentResult))
+		}
+
 		feedTagsResult := mappers.FeedTagMapperArrayDBToJSON(feedTags)
 		feedItemResult := mappers.FeedItemMapperDBToJSON(
 			feedItem,
 			user,
 			feedTagsResult,
+			commentsResult,
 		)
 
 		results = append(results, &feedItemResult)
@@ -66,6 +78,7 @@ func GetLatestFeeds(w http.ResponseWriter, r *http.Request) {
 	f := models.NewFeedItem(db)
 	u := models.NewUser(db)
 	ft := models.NewFeedTag(db)
+	c := models.NewComment(db)
 
 	feedItems, _ := f.GetLatest(nil)
 
@@ -74,13 +87,23 @@ func GetLatestFeeds(w http.ResponseWriter, r *http.Request) {
 	for _, feedItem := range feedItems {
 		user, _ := u.GetByUUID(nil, feedItem.CreatedByUserUUID)
 		feedTags, _ := ft.GetByFeedUUID(nil, feedItem.UUID)
+		comments, _ := c.GetByFeedUUID(nil, feedItem.UUID)
 
-		// TODO is pointer to struct necessary?
+		commentsResult := []*structs.CommentStruct{}
+
+		for _, comment := range comments {
+			// TODO: include these in the join query man....
+			user2, _ := u.GetByUUID(nil, comment.CreatedByUserUUID)
+			commentResult := mappers.CommentMapperDBToJSON(comment, user2)
+			commentsResult = append(commentsResult, &(commentResult))
+		}
+
 		feedTagsResult := mappers.FeedTagMapperArrayDBToJSON(feedTags)
 		feedItemResult := mappers.FeedItemMapperDBToJSON(
 			feedItem,
 			user,
 			feedTagsResult,
+			commentsResult,
 		)
 
 		results = append(results, &feedItemResult)
@@ -113,10 +136,19 @@ func PostFeed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(t.UUID) > 0 && !libuuid.ValidateUUIDv4(t.UUID) {
+		response := structs.ResultStruct{
+			Result: "PostFeed failed.  Given UUID is not valid.",
+		}
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
 	db := context.Get(r, "db").(*sqlx.DB)
 
 	feedItem, err2 := models.NewFeedItem(db).Create(
 		nil,
+		t.UUID,
 		t.Message,
 		t.CreatedByUserUUID,
 		t.Lat,
@@ -171,4 +203,53 @@ func GetAllFeedTags(w http.ResponseWriter, r *http.Request) {
 	feedTagsResult := mappers.FeedTagMapperArrayDBToJSON(feedTags)
 
 	json.NewEncoder(w).Encode(feedTagsResult)
+}
+
+// PostComment method
+func PostComment(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST")
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+
+	decoder := json.NewDecoder(r.Body)
+	var t structs.CommentStruct
+	err := decoder.Decode(&t)
+
+	if err != nil {
+		libhttp.HandleBadRequest(w, err)
+		return
+	}
+
+	db := context.Get(r, "db").(*sqlx.DB)
+
+	comment, err2 := models.NewComment(db).Create(
+		nil,
+		t.FeedItemUUID,
+		t.Message,
+		t.CreatedByUserUUID,
+		t.Lat,
+		t.Long,
+		t.FormattedAddress,
+	)
+
+	if err2 != nil {
+		if ae, ok := err2.(*pq.Error); ok {
+			libhttp.HandlePostgresError(w, *ae)
+			return
+		}
+		libhttp.HandleBadRequest(w, err2)
+		return
+	}
+
+	if comment == nil {
+		libhttp.HandleBadRequest(w, errors.New("Comment does not exist."))
+		return
+	}
+
+	// Don't return anything to client.  Optimistically displaying.
+	response := structs.ResultStruct{
+		Result: "PostComment successful",
+	}
+	json.NewEncoder(w).Encode(response)
 }

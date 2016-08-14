@@ -1,6 +1,7 @@
 package models
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -106,6 +107,7 @@ func (f *FeedItem) GetLatest(tx *sqlx.Tx) ([]FeedItemRow, error) {
 // Create create a new record of feedItem.
 func (f *FeedItem) Create(
 	tx *sqlx.Tx,
+	uuid string,
 	message string,
 	createdByUserUUID string,
 	lat float64,
@@ -113,7 +115,17 @@ func (f *FeedItem) Create(
 	formattedAddress string,
 ) (*FeedItemRow, error) {
 	now := time.Now().UTC()
-	uuid, _ := libuuid.NewUUID()
+
+	if len(uuid) > 0 {
+		if !libuuid.ValidateUUIDv4(uuid) {
+			return nil, errors.New("UUID v4 validation fails")
+		}
+	} else {
+		// Assign a new uuid if it doesn't already exist
+		newUUID, _ := libuuid.NewUUID()
+		uuid = newUUID
+	}
+
 	data := make(map[string]interface{})
 	data["uuid"] = uuid
 	data["message"] = message

@@ -36,6 +36,7 @@ func FeedItemMapperDBToJSON(
 	feedItem models.FeedItemRow,
 	user *models.UserRow, // TODO: convert to struct before passing in here.
 	feedTags []*structs.FeedTagStruct,
+	comments []*structs.CommentStruct,
 ) structs.FeedItemStruct {
 	return structs.FeedItemStruct{
 		UUID:              feedItem.UUID,
@@ -46,8 +47,30 @@ func FeedItemMapperDBToJSON(
 		Username:          user.Username,
 		CreatedByUserUUID: user.UUID,
 		FeedTags:          feedTags,
+		Comments:          comments,
 		CreatedAt:         feedItem.CreatedAt.Time,
 		UpdatedAt:         feedItem.UpdatedAt.Time,
 		DeletedAt:         feedItem.DeletedAt.Time,
+	}
+}
+
+// CommentMapperDBToJSON Map the db struct to the json struct
+func CommentMapperDBToJSON(
+	comment models.CommentRow,
+	user *models.UserRow, // TODO: convert to struct before passing in here.
+) structs.CommentStruct {
+	return structs.CommentStruct{
+		UUID:         comment.UUID,
+		FeedItemUUID: comment.FeedItemUUID,
+		Message:      comment.Message,
+		// TODO: disable these for now because they are not supported.
+		// Lat:               comment.Lat,
+		// Long:              comment.Long,
+		// FormattedAddress:  comment.FormattedAddress,
+		Username:          user.Username,
+		CreatedByUserUUID: user.UUID,
+		CreatedAt:         comment.CreatedAt.Time,
+		UpdatedAt:         comment.UpdatedAt.Time,
+		DeletedAt:         comment.DeletedAt.Time,
 	}
 }
