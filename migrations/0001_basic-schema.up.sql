@@ -10,6 +10,18 @@ CREATE TABLE users (
 
 CREATE UNIQUE INDEX idx_users_email on users (email);
 
+CREATE TABLE facebook_info (
+  uuid VARCHAR(255) PRIMARY KEY NOT NULL,
+  facebook_id TEXT NOT NULL,
+  facebook_name TEXT NOT NULL,
+  user_uuid VARCHAR(255) NOT NULL REFERENCES users(uuid),
+  created_at timestamp with time zone NOT NULL,
+  updated_at timestamp with time zone NOT NULL,
+  deleted_at timestamp with time zone
+);
+
+CREATE UNIQUE INDEX idx_facebook_info_facebook_id on facebook_info (facebook_id);
+
 CREATE TABLE feed_items (
     uuid VARCHAR(255) PRIMARY KEY NOT NULL,
     message TEXT NOT NULL,

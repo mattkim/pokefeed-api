@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"html/template"
+	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/gorilla/context"
@@ -12,7 +14,9 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/pokefeed/pokefeed-api/libhttp"
+	"github.com/pokefeed/pokefeed-api/mappers"
 	"github.com/pokefeed/pokefeed-api/models"
+	"github.com/pokefeed/pokefeed-api/structs"
 )
 
 // PostSignupStruct struct
@@ -130,6 +134,83 @@ func GetLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	GetLoginWithoutSession(w, r)
+}
+
+func CreateFacebookUser(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET")
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+
+	Info := log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
+
+	Info.Println("***** the beginning")
+
+	db := context.Get(r, "db").(*sqlx.DB)
+
+	// TODO: move into a util method
+	decoder := json.NewDecoder(r.Body)
+	var t structs.FacebookUserStruct
+	err := decoder.Decode(&t)
+
+	if err != nil {
+		libhttp.HandleBadRequest(w, err)
+		return
+	}
+
+	Info.Println("***** after struct copy")
+	Info.Println(t)
+
+	user, _ := models.NewUser(db).CreateFacebookUser(nil, t.Email)
+
+	Info.Println("**** after user insert")
+
+	facebookInfo, _ := models.NewFacebookInfo(db).CreateFacebookUser(nil, user.UUID, t.FacebookID, t.FacebookName)
+
+	Info.Println("**** after fbinfo insert")
+
+	userResult := mappers.FacebookUserMapperDBToJSON(*user, *facebookInfo)
+
+	Info.Println("**** after mappers")
+
+	json.NewEncoder(w).Encode(&userResult)
+}
+
+func GetFacebookUser(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET")
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+
+	Info := log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
+
+	facebookID := r.URL.Query()["facebook_id"][0]
+
+	db := context.Get(r, "db").(*sqlx.DB)
+	u := models.NewUser(db)
+	f := models.NewFacebookInfo(db)
+
+	user, _ := u.GetByFacebookID(nil, facebookID)
+
+	Info.Println("**** user")
+	Info.Println(user)
+	Info.Println(user.UUID)
+	Info.Println(user.Username)
+	Info.Println(user.Email)
+
+	facebookInfo, _ := f.GetByFacebookID(nil, facebookID)
+
+	Info.Println("***** fb")
+	Info.Println(facebookInfo)
+
+	userResult := mappers.FacebookUserMapperDBToJSON(*user, *facebookInfo)
+
+	Info.Println("**** after mapper")
+	Info.Println(userResult)
+
+	// We want to fetch the fb thing and grab their name.
+
+	json.NewEncoder(w).Encode(&userResult)
 }
 
 // OptionsLogin performs login.

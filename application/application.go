@@ -67,6 +67,7 @@ func (app *Application) mux() *gorilla_mux.Router {
 	router.HandleFunc("/postcomment", handlers.Options).Methods("OPTIONS")
 	router.HandleFunc("/signup", handlers.Options).Methods("OPTIONS")
 	router.HandleFunc("/login", handlers.Options).Methods("OPTIONS")
+	router.HandleFunc("/create_facebook_user", handlers.Options).Methods("OPTIONS")
 
 	router.HandleFunc("/allfeedtags", handlers.GetAllFeedTags).Methods("GET")
 	router.HandleFunc("/latestfeeds", handlers.GetLatestFeeds).Methods("GET")
@@ -75,6 +76,8 @@ func (app *Application) mux() *gorilla_mux.Router {
 	router.HandleFunc("/postcomment", handlers.PostComment).Methods("POST")
 	router.HandleFunc("/signup", handlers.PostSignup).Methods("POST")
 	router.HandleFunc("/login", handlers.PostLogin).Methods("POST")
+	router.HandleFunc("/create_facebook_user", handlers.CreateFacebookUser).Methods("POST")
+	router.HandleFunc("/get_facebook_user", handlers.GetFacebookUser).Methods("GET")
 
 	router.Handle("/users/{id:[0-9]+}", MustLogin(http.HandlerFunc(handlers.PostPutDeleteUsersUUID))).Methods("POST", "PUT", "DELETE")
 

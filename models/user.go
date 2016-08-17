@@ -62,6 +62,19 @@ func (u *User) GetByEmail(tx *sqlx.Tx, email string) (*UserRow, error) {
 	return user, err
 }
 
+func (u *User) GetByFacebookID(tx *sqlx.Tx, facebook_id string) (*UserRow, error) {
+	user := &UserRow{}
+	query := fmt.Sprintf(
+		`SELECT u.* FROM %v as u
+		JOIN facebook_info as f on f.user_uuid = u.uuid
+		WHERE f.facebook_id=$1`,
+		u.table,
+	)
+	err := u.db.Get(user, query, facebook_id)
+
+	return user, err
+}
+
 // GetByEmail returns record by email but checks password first.
 func (u *User) GetUserByEmailAndPassword(tx *sqlx.Tx, email, password string) (*UserRow, error) {
 	user, err := u.GetByEmail(tx, email)
@@ -75,6 +88,30 @@ func (u *User) GetUserByEmailAndPassword(tx *sqlx.Tx, email, password string) (*
 	}
 
 	return user, err
+}
+
+// CreateFacebookUser create a new record of user the facebook way
+func (u *User) CreateFacebookUser(tx *sqlx.Tx, email string) (*UserRow, error) {
+	if email == "" {
+		return nil, errors.New("Email cannot be blank.")
+	}
+
+	now := time.Now().UTC()
+
+	data := make(map[string]interface{})
+	// TODO: make username and password nullable.
+	// Can we have a nullable unique index?
+	data["uuid"], _ = libuuid.NewUUID()
+	data["email"] = email
+	data["updated_at"] = now
+	data["created_at"] = now
+
+	sqlResult, err := u.InsertIntoTable(tx, data)
+	if err != nil {
+		return nil, err
+	}
+
+	return u.userRowFromSqlResult(tx, *sqlResult)
 }
 
 // Signup create a new record of user.
