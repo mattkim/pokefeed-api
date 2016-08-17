@@ -186,6 +186,8 @@ func GetFacebookUser(w http.ResponseWriter, r *http.Request) {
 
 	facebookID := r.URL.Query()["facebook_id"][0]
 
+	Info.Println(facebookID)
+
 	db := context.Get(r, "db").(*sqlx.DB)
 	u := models.NewUser(db)
 	f := models.NewFacebookInfo(db)
