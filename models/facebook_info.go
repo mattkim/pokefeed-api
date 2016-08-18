@@ -95,3 +95,15 @@ func (f *FacebookInfo) GetByFacebookID(tx *sqlx.Tx, facebook_id string) (*Facebo
 
 	return facebookInfo, err
 }
+
+func (f *FacebookInfo) GetByUserUUID(tx *sqlx.Tx, user_uuid string) (*FacebookInfoRow, error) {
+	facebookInfo := &FacebookInfoRow{}
+	query := fmt.Sprintf(
+		`SELECT * FROM %v as f
+		WHERE f.user_uuid=$1`,
+		f.table,
+	)
+	err := f.db.Get(facebookInfo, query, user_uuid)
+
+	return facebookInfo, err
+}

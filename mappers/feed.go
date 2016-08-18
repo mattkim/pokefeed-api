@@ -35,16 +35,26 @@ func FeedTagMapperDBToJSON(feedTag models.FeedTagRow) structs.FeedTagStruct {
 func FeedItemMapperDBToJSON(
 	feedItem models.FeedItemRow,
 	user *models.UserRow, // TODO: convert to struct before passing in here.
+	facebookInfo *models.FacebookInfoRow, // TODO: convert to struct before passing in here.
 	feedTags []*structs.FeedTagStruct,
 	comments []*structs.CommentStruct,
 ) structs.FeedItemStruct {
+	var username string
+
+	if len(user.Username) > 0 {
+		username = user.Username
+	} else {
+		// TODO: this could be empty too
+		username = facebookInfo.FacebookName
+	}
+
 	return structs.FeedItemStruct{
 		UUID:              feedItem.UUID,
 		Message:           feedItem.Message,
 		Lat:               feedItem.Lat,
 		Long:              feedItem.Long,
 		FormattedAddress:  feedItem.FormattedAddress,
-		Username:          user.Username,
+		Username:          username,
 		CreatedByUserUUID: user.UUID,
 		FeedTags:          feedTags,
 		Comments:          comments,
@@ -58,7 +68,17 @@ func FeedItemMapperDBToJSON(
 func CommentMapperDBToJSON(
 	comment models.CommentRow,
 	user *models.UserRow, // TODO: convert to struct before passing in here.
+	facebookInfo *models.FacebookInfoRow, // TODO: convert to struct before passing in here.
 ) structs.CommentStruct {
+	var username string
+
+	if len(user.Username) > 0 {
+		username = user.Username
+	} else {
+		// TODO: this could be empty too
+		username = facebookInfo.FacebookName
+	}
+
 	return structs.CommentStruct{
 		UUID:         comment.UUID,
 		FeedItemUUID: comment.FeedItemUUID,
@@ -67,7 +87,7 @@ func CommentMapperDBToJSON(
 		// Lat:               comment.Lat,
 		// Long:              comment.Long,
 		// FormattedAddress:  comment.FormattedAddress,
-		Username:          user.Username,
+		Username:          username,
 		CreatedByUserUUID: user.UUID,
 		CreatedAt:         comment.CreatedAt.Time,
 		UpdatedAt:         comment.UpdatedAt.Time,
