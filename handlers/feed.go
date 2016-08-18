@@ -42,7 +42,7 @@ func GetFeeds(w http.ResponseWriter, r *http.Request) {
 
 	for _, feedItem := range feedItems {
 		user, _ := u.GetByUUID(nil, feedItem.CreatedByUserUUID)
-		facebookInfo, _ := fi.GetByUUID(nil, feedItem.CreatedByUserUUID)
+		facebookInfo, _ := fi.GetByUserUUID(nil, feedItem.CreatedByUserUUID)
 
 		feedTags, _ := ft.GetByFeedUUID(nil, feedItem.UUID)
 		comments, _ := c.GetByFeedUUID(nil, feedItem.UUID)
@@ -52,7 +52,7 @@ func GetFeeds(w http.ResponseWriter, r *http.Request) {
 		for _, comment := range comments {
 			// TODO: include these in the join query man....
 			user2, _ := u.GetByUUID(nil, comment.CreatedByUserUUID)
-			facebookInfo2, _ := fi.GetByUUID(nil, comment.CreatedByUserUUID)
+			facebookInfo2, _ := fi.GetByUserUUID(nil, comment.CreatedByUserUUID)
 
 			commentResult := mappers.CommentMapperDBToJSON(comment, user2, facebookInfo2)
 			commentsResult = append(commentsResult, &(commentResult))
@@ -93,7 +93,7 @@ func GetLatestFeeds(w http.ResponseWriter, r *http.Request) {
 
 	for _, feedItem := range feedItems {
 		user, _ := u.GetByUUID(nil, feedItem.CreatedByUserUUID)
-		facebookInfo, _ := fi.GetByUUID(nil, feedItem.CreatedByUserUUID)
+		facebookInfo, _ := fi.GetByUserUUID(nil, feedItem.CreatedByUserUUID)
 		feedTags, _ := ft.GetByFeedUUID(nil, feedItem.UUID)
 		comments, _ := c.GetByFeedUUID(nil, feedItem.UUID)
 
@@ -102,7 +102,7 @@ func GetLatestFeeds(w http.ResponseWriter, r *http.Request) {
 		for _, comment := range comments {
 			// TODO: include these in the join query man....
 			user2, _ := u.GetByUUID(nil, comment.CreatedByUserUUID)
-			facebookInfo2, _ := fi.GetByUUID(nil, comment.CreatedByUserUUID)
+			facebookInfo2, _ := fi.GetByUserUUID(nil, comment.CreatedByUserUUID)
 			commentResult := mappers.CommentMapperDBToJSON(comment, user2, facebookInfo2)
 			commentsResult = append(commentsResult, &(commentResult))
 		}
